@@ -1,2 +1,61 @@
-<h3>这个网站只有一些个人写的程序。。。</h3>
-<p>1.N/A</p>
+<style>
+/*--预设--*/ 
+body { padding:0px;margin: 0px; } 
+#lyrow, #lyrow input, #lyrow textarea { font-size:12px;font-family: 'Microsoft YaHei', '微软雅黑', MicrosoftJhengHei, '华文细黑', STHeiti, MingLiu; } 
+#lyrow { height:100vh;width: 100vw; } 
+#lyrow div { min-height: 18px;  } 
+#lyrow input, #lyrow textarea { border:rgb(235, 235, 235) 1px solid;border-radius: 3px;padding: 5px 8px;outline: 0; } 
+#lyrow input:hover, #lyrow textarea:hover { border: 1px solid #6bc1f2; } 
+/*--编辑--*/ 
+
+</style>
+<!--下载font-awesome.css图标包-->
+<!--https://www.58html.com/html/template/font-awesome.zip-->
+<link rel="stylesheet" href="https://www.58html.com/gui/css/font-awesome/css/font-awesome.css">
+<div id="lyrow">
+
+        
+    <a  href="https://jiangguangshang1.github.io">主页</a>
+    <a  href="https://jiangguangshang1.github.io/discuss.html">讨论</a>
+    <a  href="https://github.com/jiangguangshang1">作者</a>
+  <p>C++最大公约数代码：</p>
+<pre class="language-cpp"><code class="language-cpp code-highlight"><span class="code-line line-number" line="1"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;iostream&gt;</span></span>
+</span><span class="code-line line-number" line="2"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;algorithm&gt;</span></span>
+</span><span class="code-line line-number" line="3"><span class="token keyword">using</span> <span class="token keyword">namespace</span> std<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="4">
+</span><span class="code-line line-number" line="5"><span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line line-number" line="6"><span class="token keyword">int</span> a<span class="token punctuation">,</span> b<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="7">cin <span class="token operator">&gt;&gt;</span> a <span class="token operator">&gt;&gt;</span> b<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="8">cout <span class="token operator">&lt;&lt;</span> <span class="token function">__gcd</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span> <span class="token operator">&lt;&lt;</span> endl<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="9"><span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="10"><span class="token punctuation">}</span>
+</span></code></pre>
+<p>C++最小公倍数代码：</p>
+<pre class="language-cpp"><code class="language-cpp code-highlight"><span class="code-line line-number" line="1"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;iostream&gt;</span></span>
+</span><span class="code-line line-number" line="2"><span class="token keyword">using</span> <span class="token keyword">namespace</span> std<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="3">
+</span><span class="code-line line-number" line="4"><span class="token comment">//求最大公约数</span>
+</span><span class="code-line line-number" line="5"><span class="token keyword">int</span> <span class="token function">gcb</span><span class="token punctuation">(</span><span class="token keyword">int</span> a<span class="token punctuation">,</span> <span class="token keyword">int</span> b<span class="token punctuation">)</span>
+</span><span class="code-line line-number" line="6"><span class="token punctuation">{</span>
+</span><span class="code-line line-number" line="7">    <span class="token keyword">int</span> c <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="8">    <span class="token keyword">while</span><span class="token punctuation">(</span>c <span class="token operator">=</span> a <span class="token operator">%</span> b<span class="token punctuation">)</span>
+</span><span class="code-line line-number" line="9">    <span class="token punctuation">{</span>
+</span><span class="code-line line-number" line="10">        a <span class="token operator">=</span> b<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="11">        b <span class="token operator">=</span> c<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="12">    <span class="token punctuation">}</span>
+</span><span class="code-line line-number" line="13">    <span class="token keyword">return</span> b<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="14"><span class="token punctuation">}</span>
+</span><span class="code-line line-number" line="15">
+</span><span class="code-line line-number" line="16"><span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</span><span class="code-line line-number" line="17"><span class="token punctuation">{</span>
+</span><span class="code-line line-number" line="18">    <span class="token keyword">int</span> a<span class="token punctuation">,</span> b<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="19">    <span class="token keyword">while</span><span class="token punctuation">(</span>cin <span class="token operator">&gt;&gt;</span> a <span class="token operator">&gt;&gt;</span> b<span class="token punctuation">)</span>
+</span><span class="code-line line-number" line="20">    <span class="token punctuation">{</span>
+</span><span class="code-line line-number" line="21">        <span class="token comment">//最小公倍数 = 两数之积除以最大公约数</span>
+</span><span class="code-line line-number" line="22">        cout <span class="token operator">&lt;&lt;</span> a <span class="token operator">*</span> b <span class="token operator">/</span> <span class="token function">gcb</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span> <span class="token operator">&lt;&lt;</span> endl<span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="23">    <span class="token punctuation">}</span>
+</span><span class="code-line line-number" line="24">    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+</span><span class="code-line line-number" line="25"><span class="token punctuation">}</span>
+</span><span class="code-line line-number" line="26">
+</span></code></pre>
+</div>
