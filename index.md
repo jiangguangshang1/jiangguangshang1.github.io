@@ -96,7 +96,7 @@ int main() {
 
 服务端代码：
 
-```
+```cpp
 #include <iostream>
 #include <vector>
 #include <string>
