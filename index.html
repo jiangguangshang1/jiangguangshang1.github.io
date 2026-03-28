@@ -782,18 +782,24 @@ function level2(container) {
     container.innerHTML = makePanel(
       `😭 关卡 2 · 无限确认框 (${count+1}/${total})`,
       '每次点击"确认"都会弹出新的确认框，坚持到底！',
-      `<div class="dialog-box">
+      `<div class="dialog-box" id="dialog-${count}">
         <h3>${d.title}</h3>
         <p>${d.msg}</p>
         <div class="dialog-buttons">
-          <button class="dialog-btn-no" onclick="failLevel('哈哈，你点了取消！弱鸡！')">${d.no}</button>
-          <button class="dialog-btn-yes" id="yes-btn">${d.yes}</button>
+          <button class="dialog-btn-no" id="no-btn-${count}">${d.no}</button>
+          <button class="dialog-btn-yes" id="yes-btn-${count}">${d.yes}</button>
         </div>
       </div>`
     );
-    document.getElementById('yes-btn').addEventListener('click', () => {
+    
+    // 添加事件监听器
+    document.getElementById(`yes-btn-${count}`).addEventListener('click', () => {
       count++;
       render();
+    });
+    
+    document.getElementById(`no-btn-${count}`).addEventListener('click', () => {
+      failLevel('哈哈，你点了取消！弱鸡！');
     });
   }
   render();
@@ -962,11 +968,32 @@ function level5(container) {
       `<div class="captcha-img" id="captcha-display">${renderCaptcha(code)}</div>
        <input class="captcha-input" id="captcha-input" placeholder="输入验证码" maxlength="6" autocomplete="off">
        <div style="display:flex;gap:10px;justify-content:center;">
-         <button class="btn" onclick="checkCaptcha()">✅ 提交</button>
-         <button class="btn btn-gray" onclick="refreshCaptcha()">🔄 换一张</button>
+         <button class="btn" id="check-btn">✅ 提交</button>
+         <button class="btn btn-gray" id="refresh-btn">🔄 换一张</button>
        </div>
        <p class="tip-text" id="cap-tip">注意区分大小写和相似字符</p>`
     );
+    
+    // 添加事件监听器
+    document.getElementById('check-btn').addEventListener('click', () => {
+      const val = document.getElementById('captcha-input').value;
+      if (val === code) {
+        nextLevel();
+      } else {
+        attempts++;
+        code = genCode();
+        document.getElementById('captcha-display').innerHTML = renderCaptcha(code);
+        document.getElementById('captcha-input').value = '';
+        document.getElementById('cap-tip').textContent = `❌ 错误！已刷新验证码（第${attempts}次错误）`;
+        document.getElementById('cap-tip').style.color = '#e94560';
+      }
+    });
+    
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      code = genCode();
+      document.getElementById('captcha-display').innerHTML = renderCaptcha(code);
+      document.getElementById('captcha-input').value = '';
+    });
   }
 
   function renderCaptcha(c) {
@@ -978,26 +1005,6 @@ function level5(container) {
     }).join('');
   }
 
-  window.checkCaptcha = function() {
-    const val = document.getElementById('captcha-input').value;
-    if (val === code) {
-      nextLevel();
-    } else {
-      attempts++;
-      code = genCode();
-      document.getElementById('captcha-display').innerHTML = renderCaptcha(code);
-      document.getElementById('captcha-input').value = '';
-      document.getElementById('cap-tip').textContent = `❌ 错误！已刷新验证码（第${attempts}次错误）`;
-      document.getElementById('cap-tip').style.color = '#e94560';
-    }
-  };
-
-  window.refreshCaptcha = function() {
-    code = genCode();
-    document.getElementById('captcha-display').innerHTML = renderCaptcha(code);
-    document.getElementById('captcha-input').value = '';
-  };
-
   render();
 }
 
@@ -1007,6 +1014,7 @@ function level5(container) {
 function level6(container) {
   let closed = 0;
   const target = 8;
+  let iv = null; // 在外部作用域声明
 
   container.innerHTML = makePanel(
     '💥 关卡 6 · 弹窗地狱',
@@ -1029,18 +1037,25 @@ function level6(container) {
       '⚠️ 病毒警告！立即处理！', '🎰 今日运势极佳，把握机会',
       '🔞 你的邻居…（点击查看）', '🚀 软件已过期，立即续费',
     ];
-    ad.innerHTML = `<span class="close-x" onclick="window.closeAd(this)">✕</span>
+    ad.innerHTML = `<span class="close-x">✕</span>
       <p style="font-weight:bold;margin-bottom:8px;">${adTexts[Math.floor(Math.random()*adTexts.length)]}</p>
-      <button onclick="window.closeAd(this.parentElement)" style="background:#e94560;color:white;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;font-family:inherit;">关闭</button>`;
+      <button style="background:#e94560;color:white;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;font-family:inherit;">关闭</button>`;
     ad.style.top = (Math.random() * 60 + 10) + 'vh';
     ad.style.left = (Math.random() * 70 + 5) + 'vw';
     ad.style.zIndex = '9999';
     ad.style.position = 'fixed';
+    
+    // 使用事件委托而不是内联onclick
+    const closeBtn = ad.querySelector('.close-x');
+    const closeBtn2 = ad.querySelector('button');
+    
+    closeBtn.addEventListener('click', () => closeAd(ad));
+    closeBtn2.addEventListener('click', () => closeAd(ad));
+    
     document.body.appendChild(ad);
   }
 
-  window.closeAd = function(el) {
-    const ad = el.closest('.ad-popup') || el;
+  function closeAd(ad) {
     ad.remove();
     closed++;
     document.getElementById('ad-counter').textContent = closed;
@@ -1050,16 +1065,16 @@ function level6(container) {
       prog.textContent = `${closed}/${target}`;
     }
     if (closed >= target) {
-      clearInterval(iv);
+      if (iv) clearInterval(iv);
       setTimeout(nextLevel, 500);
     }
-  };
+  }
 
   // 持续弹出广告
   for (let i = 0; i < 3; i++) {
     adTimers.push(setTimeout(spawnAd, i * 300));
   }
-  const iv = setInterval(() => {
+  iv = setInterval(() => {
     if (closed < target) spawnAd();
   }, 1500);
   levelIntervals.push(iv);
@@ -1104,36 +1119,41 @@ function level7(container) {
   function render() {
     if (round >= total) { nextLevel(); return; }
     const r = rounds[round];
-    const btns = r.options.map((opt, i) => {
+    let btnsHtml = '';
+    for (let i = 0; i < r.options.length; i++) {
       const st = r.style ? r.style[i] : '';
-      return `<button class="choice-btn" style="${st}" onclick="pickL7(${i})">${opt}</button>`;
-    }).join('');
+      btnsHtml += `<button class="choice-btn" style="${st}" data-idx="${i}">${r.options[i]}</button>`;
+    }
 
     container.innerHTML = makePanel(
       `🎭 关卡 7 · 错误选项 (${round+1}/${total})`,
       r.q,
-      `<div class="choices">${btns}</div>
+      `<div class="choices">${btnsHtml}</div>
        <p class="tip-text" id="l7-tip">仔细看清楚每个选项</p>`
     );
+    
+    // 添加事件监听器
+    container.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = parseInt(this.getAttribute('data-idx'));
+        if (idx === rounds[round].correct) {
+          round++;
+          if (round >= total) {
+            nextLevel();
+          } else {
+            render();
+          }
+        } else {
+          document.getElementById('l7-tip').textContent = '❌ 答错了！再试试！';
+          document.getElementById('l7-tip').style.color = '#e94560';
+          container.querySelector('.level-panel').classList.add('shake');
+          setTimeout(() => {
+            container.querySelector('.level-panel')?.classList.remove('shake');
+          }, 700);
+        }
+      });
+    });
   }
-
-  window.pickL7 = function(idx) {
-    if (idx === rounds[round].correct) {
-      round++;
-      if (round >= total) {
-        nextLevel();
-      } else {
-        render();
-      }
-    } else {
-      document.getElementById('l7-tip').textContent = '❌ 答错了！再试试！';
-      document.getElementById('l7-tip').style.color = '#e94560';
-      document.getElementById('level-content').querySelector('.level-panel').classList.add('shake');
-      setTimeout(() => {
-        document.getElementById('level-content').querySelector('.level-panel')?.classList.remove('shake');
-      }, 700);
-    }
-  };
 
   render();
 }
@@ -1493,21 +1513,30 @@ function level14(container) {
   function render() {
     if (stage >= stages.length) { nextLevel(); return; }
     const s = stages[stage];
-    const btns = s.options.map((o, idx) =>
-      `<button class="choice-btn" onclick="pickL14(${idx})">${o.text}</button>`
-    ).join('');
+    let btnsHtml = '';
+    for (let i = 0; i < s.options.length; i++) {
+      btnsHtml += `<button class="choice-btn" data-idx="${i}">${s.options[i].text}</button>`;
+    }
     container.innerHTML = makePanel(
       s.title,
       `<span style="font-size:3em;">${s.img}</span><br><br>${s.desc}`,
-      `<div class="choices">${btns}</div>`
+      `<div class="choices">${btnsHtml}</div>`
     );
+    
+    // 添加事件监听器
+    container.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = parseInt(this.getAttribute('data-idx'));
+        const o = stages[stage].options[idx];
+        if (o.next) { 
+          stage++; 
+          render(); 
+        } else { 
+          failLevel(o.msg || '被感情绑架了！'); 
+        }
+      });
+    });
   }
-
-  window.pickL14 = function(idx) {
-    const o = stages[stage].options[idx];
-    if (o.next) { stage++; render(); }
-    else { failLevel(o.msg || '被感情绑架了！'); }
-  };
 
   render();
 }
@@ -1872,7 +1901,7 @@ function level20(container) {
        <div class="progress-bar-fill" id="final-prog" style="width:0%">0/${target}</div>
      </div>
      <div style="margin:20px 0;display:flex;align-items:center;justify-content:center;">
-       <button id="final-btn" onclick="finalClick()" style="
+       <button id="final-btn" style="
          width:140px;height:140px;
          background:radial-gradient(circle,#e94560,#c0392b);
          border:4px solid #ff6b6b;
@@ -1887,7 +1916,9 @@ function level20(container) {
      <p class="tip-text" id="final-tip">快点！疯狂点击！</p>`
   );
 
-  window.finalClick = function() {
+  // 添加事件监听器
+  const finalBtn = document.getElementById('final-btn');
+  finalBtn.addEventListener('click', function() {
     const now = Date.now();
     if (now - lastClick < 500) combo++;
     else combo = 1;
@@ -1909,14 +1940,14 @@ function level20(container) {
     const tip = document.getElementById('final-tip');
     if (tip) {
       const msgs = ['加油！！', '就差一点了！', '继续！🔥', '你能行的！', '快快快！', '不要停！'];
-      tip.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+      tip.textContent = msgs[Math.floor(Math.random() * msthsgs.length)];
     }
 
     if (clicks >= target) {
       clearInterval(iv);
       showVictory();
     }
-  };
+  });
 
   const iv = setInterval(() => {
     timeLeft--;
