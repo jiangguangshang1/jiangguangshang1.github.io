@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卸载助手 v9.9.9</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* 进度条 */
+  #progress-bar-container {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: #ddd;
+    z-index: 9999;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff8800);
+    transition: width 0.5s;
+  }
+
+  #level-indicator {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    font-size: 13px;
+    color: #666;
+    z-index: 9999;
+    font-weight: bold;
+  }
+
+  /* 主窗口 */
+  #game-window {
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 2px 4px 16px rgba(0,0,0,0.25);
+    width: 500px;
+    max-width: 95vw;
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 标题栏 */
+  #title-bar {
+    background: linear-gradient(90deg, #0078d4, #0063b1);
+    color: white;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  #title-bar .title-text { font-size: 14px; }
+  #title-bar .win-btns { display: flex; gap: 4px; }
+  #title-bar .win-btn {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-close { background: #ff5f57; }
+  .btn-min { background: #ffbd2e; }
+  .btn-max { background: #28c840; }
+
+  /* 内容区 */
+  #content {
+    padding: 24px 28px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    position: relative;
+  }
+
+  .level-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .level-desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+    max-width: 380px;
+  }
+
+  /* 按钮 */
+  .btn {
+    padding: 8px 22px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    background: #e9e9e9;
+    transition: background 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .btn:hover { background: #d0d0d0; }
+  .btn.primary {
+    background: #0078d4;
+    color: white;
+    border-color: #005fa3;
+  }
+  .btn.primary:hover { background: #005fa3; }
+  .btn.danger {
+    background: #d32f2f;
+    color: white;
+    border-color: #b71c1c;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* 复选框 */
+  .checkbox-list {
+    text-align: left;
+    width: 100%;
+    max-width: 360px;
+  }
+  .checkbox-list label {
+    display: block;
+    margin: 6px 0;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+  }
+
+  /* 进度条（虚假的） */
+  .fake-progress {
+    width: 100%;
+    max-width: 360px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  .fake-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    transition: width 0.1s;
+    position: relative;
+  }
+  .fake-progress-text {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+  }
+
+  /* 滑块 */
+  input[type=range] {
+    width: 280px;
+    margin: 8px 0;
+  }
+
+  input[type=text], input[type=number] {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 14px;
+    width: 220px;
+    text-align: center;
+  }
+
+  /* 旋转的卸载按钮 */
+  #spin-btn {
+    animation: spinAndMove 3s linear infinite;
+    position: absolute;
+  }
+
+  @keyframes spinAndMove {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(0.8); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  /* 烦人弹窗 */
+  .popup-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .popup-box {
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 20px 28px;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .popup-box h3 { margin-bottom: 12px; color: #333; }
+  .popup-box p { font-size: 13px; color: #555; margin-bottom: 16px; }
+
+  /* 验证码 */
+  .captcha-canvas {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  /* 颜色按钮 */
+  .color-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    max-width: 300px;
+  }
+  .color-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-size: 10px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .color-btn:hover { transform: scale(1.1); border-color: #333; }
+
+  /* 拼图 */
+  .puzzle-grid {
+    display: grid;
+    gap: 3px;
+    margin: 8px 0;
+  }
+  .puzzle-cell {
+    width: 56px;
+    height: 56px;
+    background: #e0e0e0;
+    border: 2px solid #bbb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 4px;
+    transition: background 0.1s;
+  }
+  .puzzle-cell:hover { background: #c8e6c9; }
+  .puzzle-cell.empty { background: #fff; border-color: #ddd; }
+
+  /* 晃动动画 */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  .shake { animation: shake 0.4s ease; }
+
+  /* 胜利 */
+  #victory-screen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: white;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    text-align: center;
+    font-size: 18px;
+  }
+  #victory-screen h1 { font-size: 48px; margin-bottom: 16px; }
+  #victory-screen p { font-size: 18px; color: #aaa; margin: 8px 0; }
+  .confetti-emoji { font-size: 64px; margin-bottom: 16px; }
+
+  /* 关卡失败提示 */
+  .fail-msg {
+    color: #d32f2f;
+    font-size: 13px;
+    font-weight: bold;
+    min-height: 18px;
+  }
+
+  /* 反人类输入框 */
+  .tiny-text { font-size: 8px !important; }
+  .upside-down { transform: rotate(180deg); }
+
+  /* 关卡20特效 */
+  @keyframes rainbow {
+    0% { color: red; }
+    16% { color: orange; }
+    33% { color: yellow; }
+    50% { color: green; }
+    66% { color: blue; }
+    83% { color: purple; }
+    100% { color: red; }
+  }
+  .rainbow { animation: rainbow 1s linear infinite; }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .floating { animation: float 2s ease-in-out infinite; }
+
+  /* 星星背景 */
+  .stars {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #game-window { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar-container">
+  <div id="progress-bar" style="width:5%"></div>
+</div>
+<div id="level-indicator">第 1 / 20 关</div>
+
+<div id="game-window">
+  <div id="title-bar">
+    <div class="title-text">🗑️ 极速卸载助手 Pro - 正在卸载...</div>
+    <div class="win-btns">
+      <button class="win-btn btn-min" onclick="fakeMinimize()">─</button>
+      <button class="win-btn btn-max">□</button>
+      <button class="win-btn btn-close" onclick="fakeClose()">✕</button>
+    </div>
+  </div>
+  <div id="content">
+    <!-- 关卡内容动态渲染 -->
+  </div>
+</div>
+
+<div id="victory-screen">
+  <div class="confetti-emoji">🎉</div>
+  <h1>恭喜你！</h1>
+  <p>你成功卸载了这个软件！</p>
+  <p style="margin-top:8px;color:#888;font-size:14px;">（不过它会在下次开机时自动重新安装）</p>
+  <p style="margin-top:4px;color:#666;font-size:12px;">感谢您使用极速卸载助手 Pro，再见！</p>
+  <button class="btn primary" style="margin-top:32px;" onclick="restartGame()">再玩一次</button>
+</div>
+
+<script>
+// ===== 游戏状态 =====
+let currentLevel = 1;
+const TOTAL_LEVELS = 20;
+let failCount = 0;
+let spinInterval = null;
+let shakeTimeout = null;
+
+// ===== 工具函数 =====
+function $(id) { return document.getElementById(id); }
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function randFloat(a, b) { return Math.random() * (b - a) + a; }
+
+function updateProgress() {
+  const pct = Math.round((currentLevel - 1) / TOTAL_LEVELS * 100);
+  $('progress-bar').style.width = pct + '%';
+  $('level-indicator').textContent = `第 ${currentLevel} / ${TOTAL_LEVELS} 关`;
+}
+
+function shake(el) {
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 500);
+}
+
+function nextLevel() {
+  failCount = 0;
+  if (spinInterval) { clearInterval(spinInterval); spinInterval = null; }
+  currentLevel++;
+  if (currentLevel > TOTAL_LEVELS) {
+    showVictory();
+    return;
+  }
+  updateProgress();
+  renderLevel(currentLevel);
+}
+
+function showVictory() {
+  $('game-window').style.display = 'none';
+  const v = $('victory-screen');
+  v.style.display = 'flex';
+  // 烟花特效
+  for (let i = 0; i < 30; i++) {
+    setTimeout(() => spawnParticle(), i * 100);
+  }
+}
+
+function spawnParticle() {
+  const emojis = ['🎉','✨','🌟','💥','🎊','⭐','🔥'];
+  const el = document.createElement('div');
+  el.textContent = emojis[randInt(0, emojis.length-1)];
+  el.style.cssText = `position:fixed;font-size:${randInt(20,48)}px;
+    left:${randFloat(5,95)}vw;top:${randFloat(5,95)}vh;
+    pointer-events:none;z-index:100000;
+    animation:float ${randFloat(1,3)}s ease-in-out infinite;
+    opacity:0.8;`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function restartGame() {
+  currentLevel = 1;
+  failCount = 0;
+  $('game-window').style.display = 'block';
+  $('victory-screen').style.display = 'none';
+  updateProgress();
+  renderLevel(1);
+}
+
+function fakeMinimize() {
+  shake($('game-window'));
+  showTip('最小化按钮已被管理员禁用 😊');
+}
+function fakeClose() {
+  shake($('game-window'));
+  showTip('关闭？卸载完成前不能关闭哦！');
+}
+
+function showTip(msg, duration=2000) {
+  let tip = document.getElementById('sys-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'sys-tip';
+    tip.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#333;color:white;padding:8px 18px;border-radius:20px;
+      font-size:13px;z-index:99999;white-space:nowrap;transition:opacity 0.3s;`;
+    document.body.appendChild(tip);
+  }
+  tip.textContent = msg;
+  tip.style.opacity = '1';
+  clearTimeout(tip._t);
+  tip._t = setTimeout(() => tip.style.opacity = '0', duration);
+}
+
+// ===== 关卡渲染 =====
+function renderLevel(n) {
+  const content = $('content');
+  content.innerHTML = '';
+  content.style.transform = '';
+  content.style.filter = '';
+  document.body.style.cursor = '';
+  levels[n]();
+}
+
+const levels = {
+  // ===== 第1关：按钮逃跑 =====
+  1: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">欢迎使用极速卸载助手 Pro</div>
+      <div class="level-desc">检测到您正在卸载本软件。<br>点击下方"确认卸载"按钮继续。</div>
+      <div style="position:relative;width:300px;height:70px;">
+        <button id="run-btn" class="btn danger" style="position:absolute;left:30px;top:10px;"
+          onmouseenter="runAway(this)">确认卸载</button>
+        <button class="btn" onclick="showTip('取消成功！（什么都没发生）')">取消</button>
+      </div>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    let escCount = 0;
+    window.runAway = function(btn) {
+      escCount++;
+      const maxX = 340 - btn.offsetWidth;
+      const maxY = 60 - btn.offsetHeight;
+      btn.style.left = randInt(0, Math.max(0, maxX)) + 'px';
+      btn.style.top = randInt(0, Math.max(0, maxY)) + 'px';
+      if (escCount >= 8) {
+        btn.onmouseenter = null;
+        btn.onclick = nextLevel;
+        btn.textContent = '好吧……';
+        $('fail-msg').textContent = '它累了，你可以点了！';
+      }
+    };
+  },
+
+  // ===== 第2关：超小字体协议 =====
+  2: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">卸载前请阅读并同意用户协议</div>
+      <div style="width:360px;height:120px;overflow-y:scroll;border:1px solid #ccc;
+           padding:8px;text-align:left;font-size:7px;color:#888;line-height:1.4;">
+        本协议由极速卸载助手Pro（以下简称"本软件"）与用户之间签订。用户在卸载本软件前，
+        须仔细阅读本协议全部条款。本软件保留在用户卸载后30秒内自动重新安装的权利。
+        用户同意不得向任何人透露本协议内容。本软件有权在任意时间收集用户的所有数据，
+        包括但不限于浏览记录、聊天记录、银行卡号、家庭住址、宠物名字及喜欢的颜色。
+        用户同意在卸载后仍需每月支付99元"前用户维护费"。本软件对用户的键盘磨损不负责任。
+        如用户成功卸载，本软件有权向用户的所有联系人发送"猜猜TA干了什么"。
+        阅读此协议即代表用户同意放弃所有法律追诉权利、土地所有权及第一胎命名权。
+        用户必须向至少5名朋友推荐本软件，否则视为违约。违约金为用户体重（kg）× 1000元。
+        本协议受银河系中部地区法律管辖，争议由土星第三卫星法院裁决。
+        【请向下滚动至底部才能点击同意】本软件不对用户精神损失负责。用户同意定期给本软件写情书。
+        感谢您的配合，本软件爱您。——全文完——
+      </div>
+      <div id="agree-check" style="display:none;">
+        <label style="font-size:11px;cursor:pointer;">
+          <input type="checkbox" id="agree-cb" onchange="checkAgree()">
+          我已阅读并同意以上所有条款（包括放弃命名权那条）
+        </label>
+      </div>
+      <button id="agree-btn" class="btn danger" style="display:none;" disabled onclick="nextLevel()">同意并继续卸载</button>
+      <div class="fail-msg">请先滚动到协议底部</div>
+    `;
+    const scrollBox = content.querySelector('div[style*="overflow-y"]');
+    scrollBox.onscroll = function() {
+      if (this.scrollTop + this.clientHeight >= this.scrollHeight - 5) {
+        $('agree-check').style.display = 'block';
+      }
+    };
+    window.checkAgree = function() {
+      const cb = $('agree-cb');
+      const btn = $('agree-btn');
+      btn.style.display = 'block';
+      btn.disabled = !cb.checked;
+    };
+  },
+
+  // ===== 第3关：假进度条 =====
+  3: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">正在准备卸载...</div>
+      <div class="level-desc">系统正在收集卸载所需文件，请稍候。</div>
+      <div class="fake-progress">
+        <div class="fake-progress-bar" id="fp-bar" style="width:0%"></div>
+        <div class="fake-progress-text" id="fp-text">0%</div>
+      </div>
+      <div class="level-desc" id="fp-status" style="font-size:12px;color:#888;">初始化中...</div>
+    `;
+    let prog = 0;
+    const msgs = ['初始化中...','扫描文件...','计算依赖...','备份数据...','几乎完成了...','整理残留...','快了快了...','真的快了...','就差一点...'];
+    const interval = setInterval(() => {
+      prog += randFloat(0.3, 2.5);
+      if (prog >= 99) {
+        prog = 99;
+        clearInterval(interval);
+        $('fp-status').textContent = '准备就绪！加载收尾模块...';
+        setTimeout(() => {
+          // 倒回去
+          prog = 0;
+          $('fp-status').textContent = '哎，发现缺少关键组件，重新开始...';
+          const interval2 = setInterval(() => {
+            prog += randFloat(0.5, 3);
+            if (prog >= 99) {
+              prog = 99;
+              clearInterval(interval2);
+              $('fp-status').textContent = '已完成！';
+              setTimeout(() => nextLevel(), 800);
+            }
+            $('fp-bar').style.width = prog + '%';
+            $('fp-text').textContent = Math.floor(prog) + '%';
+            $('fp-status').textContent = msgs[Math.floor(prog/12)] || '处理中...';
+          }, 60);
+        }, 1500);
+      }
+      $('fp-bar').style.width = prog + '%';
+      $('fp-text').textContent = Math.floor(prog) + '%';
+      $('fp-status').textContent = msgs[Math.floor(prog/12)] || '处理中...';
+    }, 80);
+  },
+
+  // ===== 第4关：不停弹出的确认框 =====
+  4: () => {
+    let popCount = 0;
+    const msgs = [
+      ['您确定要卸载吗？', '我们会很想念您的！'],
+      ['真的确定？', '您用了足足3年了……'],
+      ['再想想？', '卸载后您的生活会有大变化的。'],
+      ['最后确认', '（这次是真的最后一次）'],
+      ['好吧，我们接受了', '但您确认理解后果吗？'],
+      ['确认后果', '您的电脑将少一个程序。'],
+      ['少了一个程序', '感受到了吗？少了一个程序。'],
+      ['真的真的确定？', '此操作不可撤销（指卸载意向）'],
+    ];
+    function showPop() {
+      if (popCount >= msgs.length) { nextLevel(); return; }
+      const [title, body] = msgs[popCount];
+      popCount++;
+      const overlay = document.createElement('div');
+      overlay.className = 'popup-overlay';
+      overlay.innerHTML = `
+        <div class="popup-box">
+          <h3>${title}</h3>
+          <p>${body}</p>
+          <div class="btn-row">
+            <button class="btn danger" onclick="this.closest('.popup-overlay').remove();showPop();">是的，卸载</button>
+            <button class="btn" onclick="this.closest('.popup-overlay').remove();showTip('取消了，但我们还是要问');">否</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+    window.showPop = showPop;
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">卸载确认</div>
+      <div class="level-desc">点击按钮确认您的卸载意图。</div>
+      <button class="btn danger" onclick="showPop()">开始卸载</button>
+    `;
+  },
+
+  // ===== 第5关：数学题 =====
+  5: () => {
+    const content = $('content');
+    let a = randInt(15, 99), b = randInt(15, 99), op = ['+','-','×'][randInt(0,2)];
+    let answer;
+    if (op === '+') answer = a + b;
+    else if (op === '-') answer = a - b;
+    else { answer = a * b; }
+    content.innerHTML = `
+      <div class="level-title">安全验证</div>
+      <div class="level-desc">为防止误操作，请先完成以下计算：</div>
+      <div style="font-size:24px;font-weight:bold;margin:8px 0;">${a} ${op} ${b} = ?</div>
+      <input type="number" id="math-input" placeholder="输入答案">
+      <button class="btn danger" onclick="checkMath(${answer})">验证并卸载</button>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    window.checkMath = function(ans) {
+      const val = parseInt($('math-input').value);
+      if (val === ans) {
+        nextLevel();
+      } else {
+        $('fail-msg').textContent = `错了！正确答案是 ${ans}，小学数学要加油哦 😄`;
+        shake($('game-window'));
+        // 换题
+        setTimeout(() => {
+          a = randInt(20, 99); b = randInt(20, 99);
+          op = ['+','-','×'][randInt(0,2)];
+          if (op === '+') answer = a + b;
+          else if (op === '-') answer = a - b;
+          else answer = a * b;
+          content.querySelector('div[style*="font-size:24px"]').textContent = `${a} ${op} ${b} = ?`;
+          $('math-input').value = '';
+          $('fail-msg').textContent = '换了一道题，加油！';
+          // 动态修正onclick
+          content.querySelector('.btn.danger').setAttribute('onclick', `checkMath(${answer})`);
+        }, 1200);
+      }
+    };
+  },
+
+  // ===== 第6关：验证码地狱 =====
+  6: () => {
+    const content = $('content');
+    let captchaText = '';
+    function genCaptcha() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 160; canvas.height = 50;
+      canvas.className = 'captcha-canvas';
+      canvas.title = '点击刷新';
+      const ctx = canvas.getContext('2d');
+      // 背景噪点
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0,0,160,50);
+      for (let i=0;i<200;i++) {
+        ctx.fillStyle = `hsl(${randInt(0,360)},50%,70%)`;
+        ctx.fillRect(randInt(0,160),randInt(0,50),2,2);
+      }
+      // 干扰线
+      for (let i=0;i<5;i++) {
+        ctx.strokeStyle = `hsl(${randInt(0,360)},60%,50%)`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(randInt(0,60), randInt(0,50));
+        ctx.lineTo(randInt(100,160), randInt(0,50));
+        ctx.stroke();
+      }
+      // 文字
+      const chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefghjkmnpqrstwxyz23456789';
+      captchaText = '';
+      for (let i=0;i<6;i++) {
+        captchaText += chars[randInt(0, chars.length-1)];
+        ctx.font = `bold ${randInt(22,30)}px Arial`;
+        ctx.fillStyle = `hsl(${randInt(200,260)},70%,30%)`;
+        ctx.save();
+        ctx.translate(18 + i*23, 35);
+        ctx.rotate(randFloat(-0.4, 0.4));
+        ctx.fillText(captchaText[i], 0, 0);
+        ctx.restore();
+      }
+      canvas.onclick = () => {
+        const old = content.querySelector('.captcha-canvas');
+        const newCanvas = genCaptcha();
+        old.replaceWith(newCanvas);
+        $('captcha-input').value = '';
+      };
+      return canvas;
+    }
+
+    content.innerHTML = `
+      <div class="level-title">人机验证</div>
+      <div class="level-desc">请输入图中的验证码（区分大小写）</div>
+      <div id="captcha-holder"></div>
+      <input type="text" id="captcha-input" placeholder="输入验证码" maxlength="6" style="letter-spacing:4px;font-size:16px;">
+      <button class="btn danger" onclick="checkCaptcha()">验证</button>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    $('captcha-holder').appendChild(genCaptcha());
+    let attempts = 0;
+    window.checkCaptcha = function() {
+      const val = $('captcha-input').value;
+      if (val === captchaText) {
+        nextLevel();
+      } else {
+        attempts++;
+        $('fail-msg').textContent = `不对！已刷新验证码（第${attempts}次失败）`;
+        shake($('game-window'));
+        const old = content.querySelector('.captcha-canvas');
+        const newCanvas = genCaptcha();
+        old.replaceWith(newCanvas);
+        $('captcha-input').value = '';
+      }
+    };
+  },
+
+  // ===== 第7关：滑块拼图 =====
+  7: () => {
+    const content = $('content');
+    // 3x3滑块拼图，空格在右下
+    const SIZE = 3;
+    let board = [1,2,3,4,5,6,7,8,0]; // 0 = 空格
+    // 打乱
+    for (let i=0;i<200;i++) {
+      const emptyIdx = board.indexOf(0);
+      const neighbors = [];
+      const r = Math.floor(emptyIdx/SIZE), c = emptyIdx%SIZE;
+      if (r>0) neighbors.push(emptyIdx-SIZE);
+      if (r<SIZE-1) neighbors.push(emptyIdx+SIZE);
+      if (c>0) neighbors.push(emptyIdx-1);
+      if (c<SIZE-1) neighbors.push(emptyIdx+1);
+      const swap = neighbors[randInt(0,neighbors.length-1)];
+      [board[emptyIdx], board[swap]] = [board[swap], board[emptyIdx]];
+    }
+    function renderBoard() {
+      const grid = $('puzzle-grid');
+      grid.innerHTML = '';
+      board.forEach((val, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'puzzle-cell' + (val===0?' empty':'');
+        cell.textContent = val===0 ? '' : val;
+        cell.onclick = () => moveCell(idx);
+        grid.appendChild(cell);
+      });
+    }
+    function moveCell(idx) {
+      const emptyIdx = board.indexOf(0);
+      const r1 = Math.floor(idx/SIZE), c1 = idx%SIZE;
+      const r2 = Math.floor(emptyIdx/SIZE), c2 = emptyIdx%SIZE;
+      if (Math.abs(r1-r2)+Math.abs(c1-c2)===1) {
+        [board[idx],board[emptyIdx]] = [board[emptyIdx],board[idx]];
+        renderBoard();
+        if (board.join('')==='123456780') nextLevel();
+      }
+    }
+    content.innerHTML = `
+      <div class="level-title">滑块拼图验证</div>
+      <div class="level-desc">将数字1-8按顺序排列（空格在右下角）才能继续卸载。</div>
+      <div id="puzzle-grid" class="puzzle-grid" style="grid-template-columns:repeat(3,56px);"></div>
+      <div style="font-size:12px;color:#888;">点击数字移动滑块</div>
+    `;
+    renderBoard();
+  },
+
+  // ===== 第8关：颜色文字不一致 =====
+  8: () => {
+    const content = $('content');
+    const colorNames = ['红色','橙色','黄色','绿色','蓝色','紫色','粉色','黑色'];
+    const colorValues = ['#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#8e24aa','#e91e63','#212121'];
+    let targetIdx, displayIdx;
+    function genQuestion() {
+      targetIdx = randInt(0, 7);
+      displayIdx = randInt(0, 7);
+      while (displayIdx === targetIdx) displayIdx = randInt(0, 7);
+      $('color-question').innerHTML = `请点击<b style="color:${colorValues[displayIdx]}">【${colorNames[targetIdx]}】</b>这个词的<b>字体颜色</b>对应的色块：`;
+      // 打乱颜色顺序
+      const order = [...Array(8).keys()].sort(()=>Math.random()-0.5);
+      const grid = $('color-grid');
+      grid.innerHTML = '';
+      order.forEach(i => {
+        const btn = document.createElement('div');
+        btn.className = 'color-btn';
+        btn.style.background = colorValues[i];
+        btn.title = colorNames[i];
+        btn.onclick = () => checkColor(i);
+        grid.appendChild(btn);
+      });
+    }
+    content.innerHTML = `
+      <div class="level-title">色觉测试</div>
+      <div class="level-desc" id="color-question"></div>
+      <div id="color-grid" class="color-btn-grid" style="margin:8px 0;"></div>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    let tries = 0;
+    window.checkColor = function(i) {
+      if (i === displayIdx) {
+        nextLevel();
+      } else {
+        tries++;
+        $('fail-msg').textContent = `选错了！注意：要选的是【字体颜色】不是【文字内容】对应的颜色！（第${tries}次）`;
+        shake($('game-window'));
+        setTimeout(genQuestion, 1000);
+      }
+    };
+    genQuestion();
+  },
+
+  // ===== 第9关：光标消失+定时点击 =====
+  9: () => {
+    const content = $('content');
+    document.body.style.cursor = 'none';
+    let startTime, elapsed = 0;
+    content.innerHTML = `
+      <div class="level-title">隐身挑战</div>
+      <div class="level-desc">光标已隐藏。在5秒内精准点击<br>下方的"确认卸载"按钮。</div>
+      <div style="position:relative;height:80px;width:100%;">
+        <button id="invis-btn" class="btn danger"
+          style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);"
+          onclick="checkInvis()">确认卸载</button>
+      </div>
+      <div id="timer-display" style="font-size:28px;font-weight:bold;color:#e53935;">5.0</div>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    let timeLeft = 5.0;
+    startTime = Date.now();
+    const timer = setInterval(() => {
+      timeLeft -= 0.1;
+      $('timer-display') && ($('timer-display').textContent = Math.max(0, timeLeft).toFixed(1));
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        document.body.style.cursor = '';
+        if ($('fail-msg')) {
+          $('fail-msg').textContent = '时间到！按钮已移位，再试一次！';
+          // 重新移动按钮
+          const btn = $('invis-btn');
+          if (btn) {
+            btn.style.left = randInt(10,70) + '%';
+            btn.style.top = randInt(20,70) + '%';
+          }
+          timeLeft = 5.0;
+          document.body.style.cursor = 'none';
+          // 重启计时
+        }
+      }
+    }, 100);
+    window.checkInvis = function() {
+      clearInterval(timer);
+      document.body.style.cursor = '';
+      nextLevel();
+    };
+  },
+
+  // ===== 第10关：屏幕抖动疯狂 =====
+  10: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">稳定性测试</div>
+      <div class="level-desc">请在窗口剧烈抖动时<br>精准点击"确认卸载"按钮。</div>
+      <button id="shake-btn" class="btn danger" onclick="nextLevel()">确认卸载</button>
+      <div style="font-size:12px;color:#888;">（窗口会持续抖动）</div>
+    `;
+    const win = $('game-window');
+    let angle = 0;
+    spinInterval = setInterval(() => {
+      const x = Math.sin(angle * 1.7) * 12;
+      const y = Math.cos(angle * 2.3) * 8;
+      win.style.transform = `translate(${x}px, ${y}px) rotate(${Math.sin(angle)*2}deg)`;
+      angle += 0.15;
+    }, 16);
+  },
+
+  // ===== 第11关：倒置键盘输入 =====
+  11: () => {
+    const content = $('content');
+    const target = 'UNINSTALL';
+    content.innerHTML = `
+      <div class="level-title">安全输入验证</div>
+      <div class="level-desc">请使用<b>屏幕键盘</b>输入：<code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:18px;">${target}</code></div>
+      <div id="typed-display" style="font-size:24px;letter-spacing:4px;min-height:36px;border-bottom:2px solid #0078d4;width:200px;text-align:center;color:#0078d4;font-weight:bold;"></div>
+      <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:360px;">
+        ${[...'QWERTYUIOPASDFGHJKLZXCVBNM'].map(c=>`<button class="btn" style="padding:6px;font-size:13px;"
+          onclick="typeChar('${c}')">${c}</button>`).join('')}
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="typedVal=typedVal.slice(0,-1);updateDisplay()">⌫ 退格</button>
+        <button class="btn" onclick="typedVal='';updateDisplay()">清空</button>
+      </div>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    // 把所有按钮颠倒（UNINSTALL -> 对应倒转字母）
+    // 其实是：按键全部随机映射，只有特定顺序才对
+    // 反人类：按键标签和实际输出对调
+    const keyboard = [...'QWERTYUIOPASDFGHJKLZXCVBNM'];
+    const shuffled = [...keyboard].sort(()=>Math.random()-0.5);
+    const map = {};
+    keyboard.forEach((k,i) => map[k] = shuffled[i]);
+
+    // 重写按键
+    const btns = content.querySelectorAll('.btn');
+    let keyIdx = 0;
+    btns.forEach(btn => {
+      if (btn.textContent.length === 1 && /[A-Z]/.test(btn.textContent)) {
+        const label = btn.textContent;
+        const actual = map[label];
+        btn.textContent = label;
+        btn.onclick = () => { typeChar(actual); };
+        keyIdx++;
+      }
+    });
+
+    window.typedVal = '';
+    window.typeChar = function(c) {
+      typedVal += c;
+      updateDisplay();
+      if (typedVal.length > target.length) typedVal = typedVal.slice(-target.length);
+      if (typedVal === target) nextLevel();
+    };
+    window.updateDisplay = function() {
+      $('typed-display').textContent = typedVal;
+    };
+    $('fail-msg').textContent = '注意：按键标签和实际输出可能不一致哦 😉';
+  },
+
+  // ===== 第12关：多选项陷阱 =====
+  12: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">自定义卸载选项</div>
+      <div class="level-desc" style="color:#d32f2f;font-weight:bold;">⚠️ 请勾选所有要卸载的组件（必须全选）</div>
+      <div class="checkbox-list" id="check-list"></div>
+      <button class="btn danger" onclick="checkAllSelected()">执行卸载</button>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    const items = [
+      '主程序文件','用户配置','缓存数据','注册表项目','快捷方式',
+      '开机启动项','系统托盘图标','自动更新服务','崩溃报告模块',
+      '神秘隐藏组件A','神秘隐藏组件B','神秘隐藏组件C',
+    ];
+    const list = $('check-list');
+    items.forEach((item, i) => {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" id="cb-${i}"> ${item}`;
+      list.appendChild(label);
+    });
+    // 中途自动反选
+    setTimeout(() => {
+      for (let i=0;i<items.length;i+=2) {
+        const cb = document.getElementById(`cb-${i}`);
+        if (cb && cb.checked) cb.checked = false;
+      }
+      showTip('哎呀，系统刷新了，请重新勾选！', 2500);
+    }, 3000);
+    window.checkAllSelected = function() {
+      const unchecked = items.filter((_,i)=>!document.getElementById(`cb-${i}`).checked);
+      if (unchecked.length === 0) {
+        nextLevel();
+      } else {
+        $('fail-msg').textContent = `还有 ${unchecked.length} 项未勾选！`;
+        shake($('game-window'));
+      }
+    };
+  },
+
+  // ===== 第13关：镜像文字 =====
+  13: () => {
+    const content = $('content');
+    content.style.transform = 'scaleX(-1)';
+    const code = '' + randInt(1000, 9999);
+    content.innerHTML = `
+      <div class="level-title" style="transform:scaleX(-1)">镜像界面模式</div>
+      <div class="level-desc" style="transform:scaleX(-1)">界面已进入镜像模式（技术原因）<br>请输入以下卸载码：</div>
+      <div style="font-size:32px;font-weight:bold;color:#0078d4;letter-spacing:8px;">${code}</div>
+      <input type="text" id="mirror-input" placeholder="输入卸载码" style="transform:scaleX(-1);" maxlength="4">
+      <button class="btn danger" style="transform:scaleX(-1);" onclick="checkMirror('${code}')">确认</button>
+      <div class="fail-msg" id="fail-msg" style="transform:scaleX(-1);"></div>
+    `;
+    window.checkMirror = function(c) {
+      if ($('mirror-input').value === c) {
+        content.style.transform = '';
+        nextLevel();
+      } else {
+        $('fail-msg').textContent = '  ！确认再认看码卸载认看镜像里的数字';
+        shake($('game-window'));
+      }
+    };
+  },
+
+  // ===== 第14关：假删除进度 + 突然警告 =====
+  14: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">正在卸载...</div>
+      <div class="fake-progress">
+        <div class="fake-progress-bar" id="fp2" style="width:0%"></div>
+        <div class="fake-progress-text" id="fp2-txt">0%</div>
+      </div>
+      <div class="level-desc" id="fp2-msg" style="font-size:12px;">开始卸载文件...</div>
+    `;
+    let p = 0;
+    const warningShown = [false,false,false];
+    const warningAt = [30, 60, 85];
+    const warningMsgs = [
+      ['发现关联程序！', '以下程序依赖本软件：画图、记事本、计算器，确定继续？'],
+      ['注意！', '卸载将删除您过去7年的使用数据，这包含了您最美好的记忆。'],
+      ['最后警告！', '本软件正在保护您的电脑，卸载后黑客将在3分钟内入侵。'],
+    ];
+    let waitingForConfirm = false;
+    const interval = setInterval(() => {
+      if (waitingForConfirm) return;
+      p += randFloat(0.5, 2);
+      let trigIdx = warningAt.findIndex((w, i) => !warningShown[i] && p >= w);
+      if (trigIdx >= 0) {
+        warningShown[trigIdx] = true;
+        waitingForConfirm = true;
+        const [title, body] = warningMsgs[trigIdx];
+        const overlay = document.createElement('div');
+        overlay.className = 'popup-overlay';
+        overlay.innerHTML = `
+          <div class="popup-box">
+            <h3>⚠️ ${title}</h3>
+            <p>${body}</p>
+            <div class="btn-row">
+              <button class="btn danger" onclick="this.closest('.popup-overlay').remove();waitingForConfirm=false;">继续卸载</button>
+              <button class="btn" onclick="showTip('已取消（开玩笑的）');this.closest('.popup-overlay').remove();waitingForConfirm=false;">取消</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+      }
+      if (p >= 100) {
+        clearInterval(interval);
+        p = 100;
+        $('fp2-msg').textContent = '卸载完成！';
+        setTimeout(nextLevel, 800);
+      }
+      if ($('fp2')) {
+        $('fp2').style.width = Math.min(100,p) + '%';
+        $('fp2-txt').textContent = Math.floor(Math.min(100,p)) + '%';
+        $('fp2-msg').textContent = `正在删除文件... ${Math.floor(p)}%`;
+      }
+    }, 80);
+    window.waitingForConfirm = false;
+  },
+
+  // ===== 第15关：超级长表单 =====
+  15: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">卸载反馈调查（必填）</div>
+      <div class="level-desc" style="color:#d32f2f;">所有字段均为必填项，否则无法卸载</div>
+      <div style="width:100%;max-height:200px;overflow-y:auto;text-align:left;">
+        ${[
+          ['卸载原因','text','请输入至少10个字'],
+          ['对本软件的整体满意度（1-10分，必须是7）','number',''],
+          ['您今天的心情（至少50字）','text',''],
+          ['您最喜欢的颜色（不能是蓝色）','text',''],
+          ['本软件最让您满意的三个功能','text',''],
+          ['您愿意为改进本软件贡献的最大金额（元）','number',''],
+        ].map(([label, type, ph], i) => `
+          <div style="margin:8px 0;">
+            <div style="font-size:12px;color:#555;margin-bottom:3px;">${label}</div>
+            <input type="${type}" id="form-${i}" placeholder="${ph}"
+              style="width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:3px;font-size:13px;">
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn danger" onclick="checkForm()">提交并卸载</button>
+      <div class="fail-msg" id="fail-msg"></div>
+    `;
+    window.checkForm = function() {
+      const vals = [...Array(6)].map((_,i)=>document.getElementById(`form-${i}`).value.trim());
+      if (!vals[0] || vals[0].length < 10) { $('fail-msg').textContent = '卸载原因至少10个字！'; return; }
+      if (vals[1] !== '7') { $('fail-msg').textContent = '满意度必须是7！'; return; }
+      if (!vals[2] || vals[2].length < 50) { $('fail-msg').textContent = `心情描述还差${50-vals[2].length}个字！`; return; }
+      if (vals[3].includes('蓝') || vals[3].toLowerCase().includes('blue')) { $('fail-msg').textContent = '颜色不能是蓝色！'; return; }
+      if (!vals[4] || vals[4].length < 5) { $('fail-msg').textContent = '三个功能不写清楚不行！'; return; }
+      if (!vals[5] || isNaN(vals[5]) || Number(vals[5]) < 0) { $('fail-msg').textContent = '金额不能为负哦！'; return; }
+      nextLevel();
+    };
+  },
+
+  // ===== 第16关：疯狂按钮交换 =====
+  16: () => {
+    const content = $('content');
+    content.innerHTML = `
+      <div class="level-title">最终确认</div>
+      <div class="level-desc">点击"确认卸载"按钮完成操作。</div>
+      <div class="btn-row" id="swap-btns">
+        <button id="btn-yes" class="btn danger">确认卸载</button>
+        <button id="btn-no" class="btn">取消</button>
+      </div>
+      <div class="level-desc" style="font-size:12px;color:#888;">（按钮很怕你）</div>
+    `;
+    function swapBtns() {
+      const yes = $('btn-yes'), no = $('btn-no');
+      const r1 = yes.getBoundingClientRect(), r2 = no.getBoundingClientRect();
+      // 随机交换位置
+      yes.onclick = () => { showTip('那是取消！'); swapBtns(); };
+      no.onclick = () => { showTip('哎那个才是确认！'); swapBtns(); };
+      // 每次hover交换文字
+      [yes, no].forEach(btn => {
+        btn.onmouseenter = () => {
+          const tmp = yes.textContent;
+          yes.textContent = no.textContent;
+          no.textContent = tmp;
+          const tmpClass = yes.className;
+          yes.className = no.className;
+          no.className = tmpClass;
+          // 随机重新绑定onclick
+          if (Math.random() > 0.5) {
+            yes.onclick = nextLevel;
+            no.onclick = () => { showTip('这是取消！'); swapBtns(); };
+          } else {
+            no.onclick = nextLevel;
+            yes.onclick = () => { showTip('这是取消！'); swapBtns(); };
+          }
+        };
+      });
+    }
+    // 初始化
+    $('btn-yes').onclick = nextLevel;
+    $('btn-no').onclick = () => showTip('险！差点取消了');
+    // 每1.5秒自动交换一次
+    spinInterval = setInterval(() => {
+      if (!$('btn-yes')) return;
+      const tmp = $('btn-yes').textContent;
+      $('btn-yes').textContent = $('btn-no').textContent;
+      $('btn-no').textContent = tmp;
+      const tmpClass = $('btn-yes').className;
+      $('btn-yes').className = $('btn-no').className;
+      $('btn-no').className = tmpClass;
+      // 随机重绑
+      if (Math.random() > 0.5) {
+        $('btn-yes').onclick = nextLevel;
+        $('btn-no').onclick = () => showTip('不是这个！');
+      } else {
+        $('btn-no').onclick = nextLevel;
+        $('btn-yes').onclick = () => showTip('不是这个！');
+      }
+    }, 1200);
+  },
+
+  // ===== 第17关：颠倒世界 =====
+  17: () => {
+    const content = $('content');
+    content.style.transform = 'rotate(180deg)';
+    content.innerHTML = `
+      <div class="level-title">系统校准模式</div>
+      <div class="level-desc">界面已旋转180°（技术故障）<br>请找到并点击"确认卸载"按钮</div>
+      <div class="btn-row">
+        <button class="btn" onclick="showTip('这是取消按钮！')">取消卸载</button>
+        <button class="btn danger" onclick="content17next()">确认卸载</button>
+        <button class="btn" onclick="showTip('这是返回主页！')">返回主页</button>
+      </div>
+      <div style="font-size:11px;color:#aaa;">提示：颠倒状态下左右也反了</div>
+    `;
+    window.content17next = function() {
+      $('content').style.transform = '';
+      nextLevel();
+    };
+  },
+
+  // ===== 第18关：精神攻击+声音（视觉版） =====
+  18: () => {
+    const content = $('content');
+    let passed = false;
+    // 疯狂闪烁背景 + 随机弹窗轰炸
+    const colors = ['#ffebee','#fff3e0','#f3e5f5','#e3f2fd','#e8f5e9','#fce4ec'];
+    spinInterval = setInterval(() => {
+      if (passed) return;
+      document.body.style.background = colors[randInt(0,colors.length-1)];
+    }, 200);
+
+    content.innerHTML = `
+      <div class="level-title rainbow floating">⚡ 卸载最终防线 ⚡</div>
+      <div class="level-desc rainbow">本软件决定全力阻止你！<br>请在30秒内连续点击"卸载"按钮 <b>10</b> 次！</div>
+      <button id="final-click-btn" class="btn danger floating" style="font-size:18px;padding:12px 30px;">
+        卸载！
+      </button>
+      <div id="click-count" style="font-size:28px;font-weight:bold;color:#e53935;">0 / 10</div>
+      <div id="countdown18" style="font-size:14px;color:#888;">剩余时间：30秒</div>
+    `;
+    let clicks = 0, timeLeft = 30;
+    const btn = $('final-click-btn');
+    btn.onclick = () => {
+      clicks++;
+      $('click-count').textContent = `${clicks} / 10`;
+      // 按钮每次点击后随机移动
+      btn.style.position = 'relative';
+      btn.style.left = randInt(-60,60) + 'px';
+      btn.style.top = randInt(-20,20) + 'px';
+      if (clicks >= 10) {
+        passed = true;
+        clearInterval(spinInterval);
+        document.body.style.background = '#f0f0f0';
+        nextLevel();
+      }
+    };
+    const cTimer = setInterval(() => {
+      timeLeft--;
+      if ($('countdown18')) $('countdown18').textContent = `剩余时间：${timeLeft}秒`;
+      if (timeLeft <= 0) {
+        clearInterval(cTimer);
+        clicks = 0;
+        if ($('click-count')) $('click-count').textContent = '0 / 10';
+        if ($('countdown18')) $('countdown18').textContent = '时间到！重新开始';
+        timeLeft = 30;
+      }
+    }, 1000);
+  },
+
+  // ===== 第19关：找不同 + 超难操作 =====
+  19: () => {
+    const content = $('content');
+    // 生成一堆几乎一样的按钮，只有一个能点
+    const btnCount = 25;
+    const winIdx = randInt(0, btnCount-1);
+    let attempts = 0;
+    content.innerHTML = `
+      <div class="level-title">最终按钮选择</div>
+      <div class="level-desc">下方有 ${btnCount} 个按钮，只有<b>一个</b>是真正的"确认卸载"按钮。<br>
+      其余都是"取消"。找到它！</div>
+      <div id="btn-chaos" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:380px;"></div>
+      <div class="fail-msg" id="fail-msg">提示：真正的按钮颜色略有不同……也可能没有……</div>
+    `;
+    const chaos = $('btn-chaos');
+    for (let i=0;i<btnCount;i++) {
+      const btn = document.createElement('button');
+      // 故意让所有按钮几乎一样
+      const isReal = i === winIdx;
+      btn.className = 'btn' + (isReal ? ' danger' : '');
+      // 微妙差异：真按钮颜色稍深一点点
+      btn.style.cssText = `font-size:11px;padding:5px 8px;
+        background:${isReal?'#d32f2f':'#d94040'};color:white;border-color:#b71c1c;`;
+      btn.textContent = isReal ? '确认卸载' : '确认卸载';
+      btn.onclick = () => {
+        if (isReal) {
+          nextLevel();
+        } else {
+          attempts++;
+          $('fail-msg').textContent = `不是这个！已错 ${attempts} 次。（提示：第${winIdx+1}个）`;
+          shake($('game-window'));
+        }
+      };
+      chaos.appendChild(btn);
+    }
+    // 所有按钮都叫"确认卸载"，颜色几乎一样，但真按钮点了之后才过关
+    // 修正：让错误按钮颜色更相近
+    chaos.querySelectorAll('button').forEach((b, i) => {
+      const isReal = i === winIdx;
+      b.style.background = isReal ? '#c62828' : '#e53935';
+    });
+  },
+
+  // ===== 第20关：终极BOSS =====
+  20: () => {
+    const content = $('content');
+    document.body.style.background = '#1a1a1a';
+    
+    content.style.filter = 'hue-rotate(0deg)';
+    let hue = 0;
+    spinInterval = setInterval(() => {
+      hue = (hue + 2) % 360;
+      content.style.filter = `hue-rotate(${hue}deg) saturate(2)`;
+      $('game-window').style.boxShadow = `0 0 40px hsl(${hue},100%,50%)`;
+    }, 30);
+
+    content.innerHTML = `
+      <div class="level-title rainbow">🔥 最终BOSS关卡 🔥</div>
+      <div class="level-desc">你已经走到了最后。<br>
+      请完成以下操作才能最终卸载：</div>
+      <div id="boss-tasks" style="text-align:left;width:100%;font-size:13px;">
+        <div id="task-a" style="margin:5px 0;color:#888;">⬜ 1. 双击这段文字激活权限</div>
+        <div id="task-b" style="margin:5px 0;color:#888;">⬜ 2. 在输入框里输入你的名字</div>
+        <div id="task-c" style="margin:5px 0;color:#888;">⬜ 3. 点击神秘按钮</div>
+        <div id="task-d" style="margin:5px 0;color:#888;">⬜ 4. 等待命运之轮……</div>
+      </div>
+      <div id="boss-area">
+        <div id="phase" style="margin-top:8px;">
+          <span id="dblclick-text" ondblclick="bossPhase1()" 
+            style="cursor:pointer;padding:6px 12px;background:#333;color:#fff;border-radius:4px;font-size:13px;user-select:none;">
+            双击此处激活权限
+          </span>
+        </div>
+      </div>
+    `;
+
+    window.bossPhase1 = function() {
+      $('task-a').textContent = '✅ 1. 权限已激活！';
+      $('task-a').style.color = '#4caf50';
+      $('phase').innerHTML = `
+        <div style="margin:6px 0;">
+          <input type="text" id="boss-name" placeholder="输入你的名字" style="width:180px;">
+          <button class="btn primary" onclick="bossPhase2()">确认</button>
+        </div>`;
+    };
+    window.bossPhase2 = function() {
+      const name = $('boss-name').value.trim();
+      if (!name) { showTip('名字不能为空！'); return; }
+      $('task-b').textContent = `✅ 2. 你好，${name}！身份已确认。`;
+      $('task-b').style.color = '#4caf50';
+      // 生成随机位置的神秘按钮
+      const area = $('phase');
+      area.innerHTML = `<div style="position:relative;height:80px;width:300px;">
+        <button id="mystery-btn" class="btn" 
+          style="position:absolute;background:#6a0dad;color:white;border-color:#4a0080;left:${randInt(10,220)}px;top:${randInt(5,40)}px;"
+          onmouseenter="this.style.left=randInt(10,220)+'px';this.style.top=randInt(5,40)+'px';"
+          onclick="bossPhase3('${name}')">
+          🎲 神秘按钮
+        </button>
+      </div>`;
+    };
+    window.bossPhase3 = function(name) {
+      $('task-c').textContent = '✅ 3. 神秘按钮已触发！';
+      $('task-c').style.color = '#4caf50';
+      $('phase').innerHTML = `<div style="text-align:center;">
+        <div id="fate-wheel" style="font-size:48px;display:inline-block;">🎡</div>
+        <div style="font-size:13px;color:#888;">命运之轮正在旋转…</div>
+        <div id="fate-result"></div>
+      </div>`;
+      // 假装转动
+      let spins = 0;
+      const fates = ['🎰','🎲','💀','✨','🔥','💎','🌈','⚡'];
+      const fateTimer = setInterval(() => {
+        $('fate-wheel').textContent = fates[spins % fates.length];
+        spins++;
+        if (spins > 20) {
+          clearInterval(fateTimer);
+          $('fate-wheel').textContent = '🎉';
+          $('task-d').textContent = '✅ 4. 命运已定！';
+          $('task-d').style.color = '#4caf50';
+          $('fate-result').innerHTML = `
+            <div style="margin-top:10px;font-size:13px;color:#4caf50;font-weight:bold;">
+              命运选择：${name} 可以卸载！
+            </div>
+            <button class="btn danger floating" style="margin-top:10px;font-size:16px;padding:10px 24px;"
+              onclick="finalUninstall('${name}')">
+              🗑️ 最终卸载！
+            </button>`;
+        }
+      }, 120);
+    };
+    window.finalUninstall = function(name) {
+      clearInterval(spinInterval);
+      $('game-window').style.boxShadow = '';
+      content.style.filter = '';
+      document.body.style.background = '#f0f0f0';
+      // 最后的反转
+      const overlay = document.createElement('div');
+      overlay.className = 'popup-overlay';
+      overlay.innerHTML = `
+        <div class="popup-box" style="max-width:320px;">
+          <h3>🎊 卸载成功！（大概）</h3>
+          <p style="font-size:13px;color:#333;">恭喜 <b>${name}</b>，你成功通过了全部20关！<br><br>
+          <span style="color:#d32f2f;font-size:12px;">温馨提示：本软件已设置开机自启，下次开机将自动恢复。感谢您的使用！😊</span></p>
+          <button class="btn danger" style="margin-top:12px;" 
+            onclick="this.closest('.popup-overlay').remove();showVictory();">好吧……</button>
+        </div>`;
+      document.body.appendChild(overlay);
+    };
+  }
+};
+
+// ===== 启动游戏 =====
+updateProgress();
+renderLevel(1);
+</script>
+</body>
+</html>
