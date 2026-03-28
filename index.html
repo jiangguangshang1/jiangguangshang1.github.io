@@ -617,6 +617,11 @@ function clearAllTimers() {
   levelTimers = [];
   levelIntervals = [];
   if (levelRAF) { cancelAnimationFrame(levelRAF); levelRAF = null; }
+  // 清除事件监听器
+  if (window._currentKeyHandler) {
+    document.removeEventListener('keydown', window._currentKeyHandler);
+    window._currentKeyHandler = null;
+  }
 }
 
 function removeAllAds() {
@@ -1024,11 +1029,13 @@ function level6(container) {
       '⚠️ 病毒警告！立即处理！', '🎰 今日运势极佳，把握机会',
       '🔞 你的邻居…（点击查看）', '🚀 软件已过期，立即续费',
     ];
-    ad.innerHTML = `<span class="close-x" onclick="closeAd(this)">✕</span>
+    ad.innerHTML = `<span class="close-x" onclick="window.closeAd(this)">✕</span>
       <p style="font-weight:bold;margin-bottom:8px;">${adTexts[Math.floor(Math.random()*adTexts.length)]}</p>
-      <button onclick="closeAd(this.parentElement)" style="background:#e94560;color:white;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;font-family:inherit;">关闭</button>`;
+      <button onclick="window.closeAd(this.parentElement)" style="background:#e94560;color:white;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;font-family:inherit;">关闭</button>`;
     ad.style.top = (Math.random() * 60 + 10) + 'vh';
     ad.style.left = (Math.random() * 70 + 5) + 'vw';
+    ad.style.zIndex = '9999';
+    ad.style.position = 'fixed';
     document.body.appendChild(ad);
   }
 
@@ -1043,6 +1050,7 @@ function level6(container) {
       prog.textContent = `${closed}/${target}`;
     }
     if (closed >= target) {
+      clearInterval(iv);
       setTimeout(nextLevel, 500);
     }
   };
@@ -1112,7 +1120,11 @@ function level7(container) {
   window.pickL7 = function(idx) {
     if (idx === rounds[round].correct) {
       round++;
-      render();
+      if (round >= total) {
+        nextLevel();
+      } else {
+        render();
+      }
     } else {
       document.getElementById('l7-tip').textContent = '❌ 答错了！再试试！';
       document.getElementById('l7-tip').style.color = '#e94560';
@@ -1481,8 +1493,8 @@ function level14(container) {
   function render() {
     if (stage >= stages.length) { nextLevel(); return; }
     const s = stages[stage];
-    const btns = s.options.map(o =>
-      `<button class="choice-btn" onclick="pickL14(${JSON.stringify(o).replace(/"/g, '&quot;')})">${o.text}</button>`
+    const btns = s.options.map((o, idx) =>
+      `<button class="choice-btn" onclick="pickL14(${idx})">${o.text}</button>`
     ).join('');
     container.innerHTML = makePanel(
       s.title,
@@ -1491,8 +1503,8 @@ function level14(container) {
     );
   }
 
-  window.pickL14 = function(o) {
-    if (typeof o === 'string') o = JSON.parse(o.replace(/&quot;/g, '"'));
+  window.pickL14 = function(idx) {
+    const o = stages[stage].options[idx];
     if (o.next) { stage++; render(); }
     else { failLevel(o.msg || '被感情绑架了！'); }
   };
@@ -1580,6 +1592,8 @@ function level15(container) {
   }
 
   document.addEventListener('keydown', keyHandler);
+  // 存储引用以便清理
+  window._currentKeyHandler = keyHandler;
   draw();
 }
 
@@ -1750,6 +1764,8 @@ function level19(container) {
     if (document.querySelectorAll('.ad-popup').length > 4) return;
     const ad = document.createElement('div');
     ad.className = 'ad-popup';
+    ad.style.zIndex = '9999';
+    ad.style.position = 'fixed';
     const msgs = ['你已感染病毒！','恭喜获得iPhone！','一键加速！','请勿卸载！'];
     ad.innerHTML = `<span class="close-x" onclick="this.parentElement.remove()">✕</span><p style="font-weight:bold;">${msgs[Math.floor(Math.random()*4)]}</p>`;
     ad.style.top = (Math.random() * 50 + 10) + 'vh';
