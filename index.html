@@ -584,6 +584,15 @@ const levels = [
   { title: "最后决战", fn: level20 },
 ];
 
+// 调试函数：在浏览器控制台输入 skipToLevel(6) 可直接跳到第6关
+function skipToLevel(n) {
+  currentLevel = n - 1;
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('level-screen').style.display = 'flex';
+  document.getElementById('result-screen').style.display = 'none';
+  loadLevel(currentLevel);
+}
+
 function startGame() {
   currentLevel = 0;
   score = 0;
@@ -625,7 +634,7 @@ function clearAllTimers() {
 }
 
 function removeAllAds() {
-  document.querySelectorAll('.ad-popup').forEach(el => el.remove());
+  document.querySelectorAll('.ad-popup, .ad-popup-l6').forEach(el => el.remove());
   adTimers.forEach(clearTimeout);
   adTimers = [];
 }
@@ -1012,9 +1021,9 @@ function level5(container) {
 //  关卡6: 弹窗地狱
 // ============================================
 function level6(container) {
-  let closed = 0;
   const target = 8;
-  let iv = null; // 在外部作用域声明
+  // 用一个对象持有状态，避免闭包陷阱
+  const state = { closed: 0, done: false, iv: null };
 
   container.innerHTML = makePanel(
     '💥 关卡 6 · 弹窗地狱',
@@ -1027,57 +1036,80 @@ function level6(container) {
      </div>`
   );
 
-  function spawnAd() {
-    if (closed >= target) return;
-    const ad = document.createElement('div');
-    ad.className = 'ad-popup';
-    const adTexts = [
-      '🎁 恭喜中奖！点我领取！', '💊 秘密减肥药，有效！',
-      '📱 手机变卡？一键加速！', '💰 月入百万，看我操作',
-      '⚠️ 病毒警告！立即处理！', '🎰 今日运势极佳，把握机会',
-      '🔞 你的邻居…（点击查看）', '🚀 软件已过期，立即续费',
-    ];
-    ad.innerHTML = `<span class="close-x">✕</span>
-      <p style="font-weight:bold;margin-bottom:8px;">${adTexts[Math.floor(Math.random()*adTexts.length)]}</p>
-      <button style="background:#e94560;color:white;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;font-family:inherit;">关闭</button>`;
-    ad.style.top = (Math.random() * 60 + 10) + 'vh';
-    ad.style.left = (Math.random() * 70 + 5) + 'vw';
-    ad.style.zIndex = '9999';
-    ad.style.position = 'fixed';
-    
-    // 使用事件委托而不是内联onclick
-    const closeBtn = ad.querySelector('.close-x');
-    const closeBtn2 = ad.querySelector('button');
-    
-    closeBtn.addEventListener('click', () => closeAd(ad));
-    closeBtn2.addEventListener('click', () => closeAd(ad));
-    
-    document.body.appendChild(ad);
-  }
+  const adTexts = [
+    '🎁 恭喜中奖！点我领取！', '💊 秘密减肥药，有效！',
+    '📱 手机变卡？一键加速！', '💰 月入百万，看我操作',
+    '⚠️ 病毒警告！立即处理！', '🎰 今日运势极佳，把握机会',
+    '😱 你的邻居…（点击查看）', '🚀 软件已过期，立即续费',
+  ];
 
-  function closeAd(ad) {
-    ad.remove();
-    closed++;
-    document.getElementById('ad-counter').textContent = closed;
+  function closeAd(adEl) {
+    if (!adEl.parentNode) return; // 防止重复关闭
+    adEl.remove();
+    state.closed++;
+    const counter = document.getElementById('ad-counter');
+    if (counter) counter.textContent = state.closed;
     const prog = document.getElementById('ad-prog');
     if (prog) {
-      prog.style.width = (closed / target * 100) + '%';
-      prog.textContent = `${closed}/${target}`;
+      prog.style.width = (state.closed / target * 100) + '%';
+      prog.textContent = state.closed + '/' + target;
     }
-    if (closed >= target) {
-      if (iv) clearInterval(iv);
+    if (state.closed >= target && !state.done) {
+      state.done = true;
+      if (state.iv) { clearInterval(state.iv); state.iv = null; }
       setTimeout(nextLevel, 500);
     }
   }
 
-  // 持续弹出广告
-  for (let i = 0; i < 3; i++) {
-    adTimers.push(setTimeout(spawnAd, i * 300));
+  function spawnAd() {
+    if (state.done || state.closed >= target) return;
+    // 最多同时显示6个
+    if (document.querySelectorAll('.ad-popup-l6').length >= 6) return;
+
+    const ad = document.createElement('div');
+    ad.className = 'ad-popup ad-popup-l6';
+    // 关键：内联样式完整写死，不依赖CSS类
+    ad.style.cssText = [
+      'position:fixed',
+      'background:#fff',
+      'color:#333',
+      'border-radius:8px',
+      'padding:15px',
+      'box-shadow:0 10px 40px rgba(0,0,0,0.6)',
+      'z-index:99999',
+      'max-width:200px',
+      'min-width:150px',
+      'text-align:center',
+      'font-size:14px',
+      'font-family:inherit',
+      'top:' + (Math.random() * 55 + 10) + 'vh',
+      'left:' + (Math.random() * 65 + 5) + 'vw',
+    ].join(';');
+
+    const txt = adTexts[Math.floor(Math.random() * adTexts.length)];
+    ad.innerHTML =
+      '<div style="position:relative;padding-top:10px;">' +
+        '<span style="position:absolute;top:-8px;right:-4px;cursor:pointer;font-weight:bold;color:#999;font-size:16px;line-height:1;padding:4px 6px;" class="l6-close">✕</span>' +
+        '<p style="font-weight:bold;margin:8px 0 10px;font-size:13px;">' + txt + '</p>' +
+        '<button style="background:#e94560;color:white;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-family:inherit;" class="l6-close-btn">关闭</button>' +
+      '</div>';
+
+    ad.querySelector('.l6-close').addEventListener('click', function() { closeAd(ad); });
+    ad.querySelector('.l6-close-btn').addEventListener('click', function() { closeAd(ad); });
+
+    document.body.appendChild(ad);
   }
-  iv = setInterval(() => {
-    if (closed < target) spawnAd();
+
+  // 立即弹出3个，然后每1.5秒弹一个
+  spawnAd();
+  var t1 = setTimeout(spawnAd, 400);
+  var t2 = setTimeout(spawnAd, 800);
+  levelTimers.push(t1, t2);
+
+  state.iv = setInterval(function() {
+    if (!state.done) spawnAd();
   }, 1500);
-  levelIntervals.push(iv);
+  levelIntervals.push(state.iv);
 }
 
 // ============================================
